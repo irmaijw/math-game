@@ -1,0 +1,34 @@
+workflows:
+  verify-and-build:
+    name: Verify and build unsigned artifacts
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      flutter: stable
+      xcode: latest
+    cache:
+      cache_paths:
+        - $FLUTTER_ROOT/.pub-cache
+    scripts:
+      - name: Get packages
+        script: flutter pub get
+      - name: Check formatting
+        script: dart format --output=none --set-exit-if-changed lib test
+      - name: Analyze
+        script: flutter analyze
+      - name: Test
+        script: flutter test
+      - name: Build Android APK
+        script: flutter build apk --release
+      - name: Build unsigned iOS app
+        script: flutter build ios --release --no-codesign
+      - name: Package unsigned IPA-shaped artifact
+        script: |
+          mkdir -p build/ios/unsigned/Payload
+          cp -R build/ios/iphoneos/Runner.app build/ios/unsigned/Payload/
+          cd build/ios/unsigned
+          zip -qry math-game-unsigned.ipa Payload
+    artifacts:
+      - build/app/outputs/flutter-apk/app-release.apk
+      - build/ios/iphoneos/Runner.app
+      - build/ios/unsigned/math-game-unsigned.ipa
